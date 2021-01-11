@@ -107,7 +107,7 @@ view model =
         ]
 
 
-toTab : ( String, String ) -> Tabs.Tab String Msg
+toTab : ( String, String ) -> Tabs.Tab (Html Msg) String
 toTab ( title, content ) =
     { tag = title
     , id = title

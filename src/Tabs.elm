@@ -1,22 +1,28 @@
 module Tabs exposing
-    ( Activation(..)
-    , Config
-    , Orientation(..)
-    , Tab
-    , view
+    ( Config, Tab, Activation(..), Orientation(..), view
+    , Views, TabsAttrs, TabAttrs, PanelAttrs, viewCustom
     )
+
+{-|
+
+@docs Config, Tab, Activation, Orientation, view
+@docs Views, TabsAttrs, TabAttrs, PanelAttrs, viewCustom
+
+-}
 
 import Browser.Dom
 import Html exposing (Attribute, Html)
 import Html.Attributes
 import Html.Events
-import Json.Decode
+import Json.Decode exposing (Decoder)
 import List.Extra
 import Task exposing (Task)
 
 
-type alias Config tab msg =
-    { tabs : List (Tab tab msg)
+{-| TODO
+-}
+type alias Config node tab msg =
+    { tabs : List (Tab node tab)
     , active : tab
     , label : String
     , orientation : Orientation
@@ -25,48 +31,91 @@ type alias Config tab msg =
     }
 
 
-type alias Tab tag msg =
+{-| TODO
+-}
+type alias Tab node tag =
     { tag : tag
     , id : String
-    , label : Html msg
-    , panel : Html msg
+    , label : node
+    , panel : node
     , focusable : Bool
     }
 
 
+{-| TODO
+-}
 type Activation
     = Automatic
     | Manual
 
 
+{-| TODO
+-}
 type Orientation
     = Horizontal
     | Vertical
 
 
-view : Config tab msg -> Html msg
-view config =
-    Html.div
-        [ Html.Attributes.class "tabs" ]
-        (Html.div
-            [ role "tablist"
-            , ariaLabel config.label
-            ]
-            (List.map (viewTab config) config.tabs)
-            :: List.map (viewPanel config.active) config.tabs
-        )
+
+---- VIEW
 
 
-viewTab : Config tag msg -> Tab tag msg -> Html msg
-viewTab config tab =
+{-| TODO
+-}
+type alias Views node msg =
+    { tabs : TabsAttrs -> List node -> List node -> node
+    , tab : TabAttrs msg -> node -> node
+    , panel : PanelAttrs -> node -> node
+    }
+
+
+{-| TODO
+-}
+type alias TabsAttrs =
+    { role : String
+    , ariaLabel : String
+    }
+
+
+{-| TODO
+-}
+type alias TabAttrs msg =
+    { role : String
+    , ariaSelected : Bool
+    , ariaControls : String
+    , id : String
+    , onClick : msg
+    , preventDefaultOnKeydown : Decoder ( msg, Bool )
+    , tabindex : Maybe Int
+    }
+
+
+{-| TODO
+-}
+type alias PanelAttrs =
+    { role : String
+    , id : String
+    , ariaLabelledby : String
+    , tabindex : Maybe Int
+    , hidden : Bool
+    }
+
+
+{-| TODO
+-}
+viewCustom : Views node msg -> Config node tab msg -> node
+viewCustom views config =
+    views.tabs
+        { role = "tablist"
+        , ariaLabel = config.label
+        }
+        (List.map (viewTab views.tab config) config.tabs)
+        (List.map (viewPanel views.panel config.active) config.tabs)
+
+
+viewTab : (TabAttrs msg -> node -> node) -> Config node tag msg -> Tab node tag -> node
+viewTab toNode config tab =
     let
-        withTabindex attrs =
-            if config.active == tab.tag then
-                attrs
-
-            else
-                Html.Attributes.tabindex -1 :: attrs
-
         handleKey key =
             case key of
                 "Enter" ->
@@ -114,112 +163,98 @@ viewTab config tab =
             Maybe.map (\msg -> Json.Decode.succeed ( msg, True ))
                 >> Maybe.withDefault (Json.Decode.fail "not handling that key here")
     in
-    Html.button
-        ([ Html.Attributes.type_ "button"
-         , role "tab"
-         , ariaSelected (config.active == tab.tag)
-         , ariaControls (idPanel tab.id)
-         , Html.Attributes.id (idTab tab.id)
-         , Html.Events.onClick (activateTab config tab)
-         , Html.Events.preventDefaultOn "keydown"
-            (Json.Decode.andThen (handleKey >> preventDefault)
+    toNode
+        { role = "tab"
+        , ariaSelected = config.active == tab.tag
+        , ariaControls = idPanel tab.id
+        , id = idTab tab.id
+        , onClick = activateTab config tab
+        , preventDefaultOnKeydown =
+            Json.Decode.andThen (handleKey >> preventDefault)
                 (Json.Decode.field "key" Json.Decode.string)
-            )
-         ]
-            |> withTabindex
-        )
-        [ tab.label ]
+        , tabindex =
+            if config.active == tab.tag then
+                Nothing
+
+            else
+                Just -1
+        }
+        tab.label
 
 
-viewPanel : tag -> Tab tag msg -> Html msg
-viewPanel active tab =
-    let
-        withTabindex attrs =
+viewPanel : (PanelAttrs -> node -> node) -> tag -> Tab node tag -> node
+viewPanel toNode active tab =
+    toNode
+        { role = "tabpanel"
+        , id = idPanel tab.id
+        , ariaLabelledby = idTab tab.id
+        , tabindex =
             if tab.focusable then
-                Html.Attributes.tabindex 0 :: attrs
+                Just 0
 
             else
-                attrs
-
-        withHidden attrs =
-            if active == tab.tag then
-                attrs
-
-            else
-                -- TODO hide
-                Html.Attributes.class "is-hidden" :: attrs
-    in
-    Html.div
-        ([ role "tabpanel"
-         , Html.Attributes.id (idPanel tab.id)
-         , ariaLabelledby (idTab tab.id)
-         ]
-            |> withTabindex
-            |> withHidden
-        )
-        [ tab.panel ]
+                Nothing
+        , hidden = active /= tab.tag
+        }
+        tab.panel
 
 
 
 ---- TASKS
 
 
-focusFirstTab : Config tab msg -> Maybe msg
+focusFirstTab : Config node tab msg -> Maybe msg
 focusFirstTab config =
     List.head config.tabs
         |> Maybe.map (focusTab config)
 
 
-activateFirstTab : Config tag msg -> Maybe msg
+activateFirstTab : Config node tag msg -> Maybe msg
 activateFirstTab config =
     List.head config.tabs
         |> Maybe.map (activateTab config)
 
 
-focusLastTab : Config tab msg -> Maybe msg
+focusLastTab : Config node tab msg -> Maybe msg
 focusLastTab config =
     focusFirstTab { config | tabs = List.reverse config.tabs }
 
 
-activateLastTab : Config tag msg -> Maybe msg
+activateLastTab : Config node tag msg -> Maybe msg
 activateLastTab config =
     activateFirstTab { config | tabs = List.reverse config.tabs }
 
 
-focusNextTab : Config tab msg -> String -> Maybe msg
+focusNextTab : Config node tab msg -> String -> Maybe msg
 focusNextTab config focused =
     next config.tabs focused
         |> Maybe.map (focusTab config)
 
 
-activateNextTab : Config tab msg -> String -> Maybe msg
+activateNextTab : Config node tab msg -> String -> Maybe msg
 activateNextTab config focused =
     next config.tabs focused
         |> Maybe.map (activateTab config)
 
 
-focusPreviousTab : Config tab msg -> String -> Maybe msg
+focusPreviousTab : Config node tab msg -> String -> Maybe msg
 focusPreviousTab config focused =
     focusNextTab { config | tabs = List.reverse config.tabs } focused
 
 
-activatePreviousTab : Config tab msg -> String -> Maybe msg
+activatePreviousTab : Config node tab msg -> String -> Maybe msg
 activatePreviousTab config focused =
     activateNextTab { config | tabs = List.reverse config.tabs } focused
 
 
-focusTab : Config tag msg -> Tab tag msg -> msg
+focusTab : Config node tag msg -> Tab node tag -> msg
 focusTab config tab =
     config.onChange config.active (Browser.Dom.focus (idTab tab.id))
 
 
-activateTab : Config tag msg -> Tab tag msg -> msg
+activateTab : Config node tag msg -> Tab node tag -> msg
 activateTab config tab =
     config.onChange tab.tag (Browser.Dom.focus (idTab tab.id))
-
-
-
----- HELP
 
 
 next : List (Tab tag msg) -> String -> Maybe (Tab tag msg)
@@ -247,7 +282,90 @@ idTab id =
 
 
 
----- HELPER
+---- HTML
+
+
+{-| TODO
+-}
+view : Config (Html msg) tab msg -> Html msg
+view =
+    viewCustom
+        { tabs = htmlTabs
+        , tab = htmlTab
+        , panel = htmlPanel
+        }
+
+
+htmlTabs : TabsAttrs -> List (Html msg) -> List (Html msg) -> Html msg
+htmlTabs attrs tabs panels =
+    Html.div
+        [ Html.Attributes.class "tabs" ]
+        (Html.div
+            [ role attrs.role
+            , ariaLabel attrs.ariaLabel
+            ]
+            tabs
+            :: panels
+        )
+
+
+htmlTab : TabAttrs msg -> Html msg -> Html msg
+htmlTab attrs label =
+    let
+        withTabindex htmlAttrs =
+            case attrs.tabindex of
+                Nothing ->
+                    htmlAttrs
+
+                Just tabindex ->
+                    Html.Attributes.tabindex tabindex :: htmlAttrs
+    in
+    Html.button
+        ([ Html.Attributes.type_ "button"
+         , role attrs.role
+         , ariaSelected attrs.ariaSelected
+         , ariaControls attrs.ariaControls
+         , Html.Attributes.id attrs.id
+         , Html.Events.onClick attrs.onClick
+         , Html.Events.preventDefaultOn "keydown" attrs.preventDefaultOnKeydown
+         ]
+            |> withTabindex
+        )
+        [ label ]
+
+
+htmlPanel : PanelAttrs -> Html msg -> Html msg
+htmlPanel attrs panel =
+    let
+        withTabindex htmlAttrs =
+            case attrs.tabindex of
+                Nothing ->
+                    htmlAttrs
+
+                Just tabindex ->
+                    Html.Attributes.tabindex tabindex :: htmlAttrs
+
+        withHidden htmlAttrs =
+            if attrs.hidden then
+                -- TODO hide
+                Html.Attributes.class "is-hidden" :: htmlAttrs
+
+            else
+                htmlAttrs
+    in
+    Html.div
+        ([ role attrs.role
+         , Html.Attributes.id attrs.id
+         , ariaLabelledby attrs.ariaLabelledby
+         ]
+            |> withTabindex
+            |> withHidden
+        )
+        [ panel ]
+
+
+
+---- HTML ATTRIBUTES
 
 
 role : String -> Attribute msg
