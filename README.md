@@ -12,8 +12,8 @@ See more end-to-end example code in the `examples/` folder.
 ## Design Goals
 
 - Stick to the WAI-ARIA guideline as close as possible.
-- Offer a simple version for the standard [elm/html
-  Package](https://packages.elm-lang.org/packages/elm/html/latest/).
+- Offer a simple version for the standard
+  [elm/html](https://package.elm-lang.org/packages/elm/html/latest/) package.
 - Make the widget customizable for any other UI library, e.g.
   [rtfeldman/elm-css](https://package.elm-lang.org/packages/rtfeldman/elm-css/latest/)
   or
@@ -32,9 +32,9 @@ TODO
 
 ## Usage
 
-Add [the kirchner/elm-wai-aria-tabs Elm
-package](https://package.elm-lang.org/packages/kirchner/elm-wai-aria-tabs/latest/)
-as a dependency by running
+Add the
+[kirchner/elm-wai-aria-tabs](https://package.elm-lang.org/packages/kirchner/elm-wai-aria-tabs/latest/)
+Elm package as a dependency by running
 
 ```
 $ elm install kirchner/elm-wai-aria-tabs
