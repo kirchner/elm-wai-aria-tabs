@@ -174,7 +174,10 @@ viewTab toNode config tab =
                 (Json.Decode.field "key" Json.Decode.string)
         , tabindex =
             if config.active == tab.tag then
-                Nothing
+                -- FIXME according to spec we want 'Nothing' here, but then the
+                -- elm-ui version will not work, since elm-ui buttons are
+                -- implemented as div's with role="button"
+                Just 0
 
             else
                 Just -1
