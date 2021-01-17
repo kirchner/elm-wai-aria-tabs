@@ -3,7 +3,8 @@ module ElmUi exposing (main)
 import BeautifulExample
 import Browser
 import Browser.Dom
-import Element exposing (Color, Element)
+import Color
+import Element exposing (Attribute, Color, Element)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
@@ -28,7 +29,7 @@ main =
             the panel. The list of tab elements is arranged along one edge of the
             currently displayed panel, most commonly the top edge."
         """
-        , color = Nothing
+        , color = Just Color.black
         , maxWidth = 800
         , githubUrl = Just "https://github.com/kirchner/elm-wai-aria-tabs"
         , documentationUrl = Just "https://package.elm-lang.org/packages/kirchner/elm-wai-aria-tabs/latest/"
