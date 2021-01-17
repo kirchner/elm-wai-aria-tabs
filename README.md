@@ -3,8 +3,15 @@
 This package offers an implementation of the [Tabs
 widget](https://www.w3.org/TR/wai-aria-practices-1.1/#tabpanel) as specified in
 the [WAI-ARIA Authoring Practices
-1.1](https://www.w3.org/TR/wai-aria-practices-1.1/).  Take a look at the [demo
-page](https://kirchner.github.io/elm-wai-aria-tabs/).
+1.1](https://www.w3.org/TR/wai-aria-practices-1.1/):
+
+> Tabs are a set of layered sections of content, known as tab panels, that
+> display one panel of content at a time. Each tab panel has an associated tab
+> element, that when activated, displays the panel. The list of tab elements is
+> arranged along one edge of the currently displayed panel, most commonly the top
+> edge.
+
+Take a look at the [demo page](https://kirchner.github.io/elm-wai-aria-tabs/).
 
 See more end-to-end example code in the `examples/` folder.
 
