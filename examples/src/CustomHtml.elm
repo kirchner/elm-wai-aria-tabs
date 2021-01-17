@@ -1,4 +1,4 @@
-module Main exposing (main)
+module CustomHtml exposing (main)
 
 import Browser
 import Browser.Dom
