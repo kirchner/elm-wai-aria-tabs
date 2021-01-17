@@ -1,10 +1,14 @@
 module ElmUi exposing (main)
 
+import BeautifulExample
 import Browser
 import Browser.Dom
-import Element exposing (Element)
+import Element exposing (Color, Element)
+import Element.Background as Background
 import Element.Border as Border
+import Element.Font as Font
 import Element.Input as Input
+import Element.Region as Region
 import Html exposing (Html)
 import Html.Attributes
 import Html.Events
@@ -14,7 +18,21 @@ import Task exposing (Task)
 
 main : Program () Model Msg
 main =
-    Browser.element
+    BeautifulExample.element
+        { title = "Tabs"
+        , details = Just """
+            This package offers an implementation of the Tabs widget as specified in the
+            WAI-ARIA Authoring Practices 1.1: "Tabs are a set of layered sections of
+            content, known as tab panels, that display one panel of content at a time.
+            Each tab panel has an associated tab element, that when activated, displays
+            the panel. The list of tab elements is arranged along one edge of the
+            currently displayed panel, most commonly the top edge."
+        """
+        , color = Nothing
+        , maxWidth = 800
+        , githubUrl = Just "https://github.com/kirchner/elm-wai-aria-tabs"
+        , documentationUrl = Just "https://package.elm-lang.org/packages/kirchner/elm-wai-aria-tabs/latest/"
+        }
         { init = init
         , update = update
         , subscriptions = subscriptions
@@ -23,21 +41,21 @@ main =
 
 
 type alias Model =
-    { active : String
-    , activation : Tabs.Activation
+    { activeAutomatic : String
+    , activeManual : String
     }
 
 
 type Msg
     = NoOp
-    | UserChangedActivation Tabs.Activation
-    | UserChangedTab String (Task Browser.Dom.Error ())
+    | UserChangedTabAutomatic String (Task Browser.Dom.Error ())
+    | UserChangedTabManual String (Task Browser.Dom.Error ())
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( { active = "Nils Frahm"
-      , activation = Tabs.Automatic
+    ( { activeAutomatic = "Nils Frahm"
+      , activeManual = "Nils Frahm"
       }
     , Cmd.none
     )
@@ -49,11 +67,13 @@ update msg model =
         NoOp ->
             ( model, Cmd.none )
 
-        UserChangedActivation activation ->
-            ( { model | activation = activation }, Cmd.none )
+        UserChangedTabAutomatic active task ->
+            ( { model | activeAutomatic = active }
+            , Task.attempt (\_ -> NoOp) task
+            )
 
-        UserChangedTab active task ->
-            ( { model | active = active }
+        UserChangedTabManual active task ->
+            ( { model | activeManual = active }
             , Task.attempt (\_ -> NoOp) task
             )
 
@@ -66,22 +86,55 @@ subscriptions _ =
 view : Model -> Html Msg
 view model =
     Element.layout
-        []
-        (Tabs.viewCustom views
-            { tabs = List.map toTab allTabs
-            , active = model.active
-            , label = "Entertainment"
-            , orientation = Tabs.Horizontal
-            , activation = model.activation
-            , onChange = UserChangedTab
-            }
+        [ Element.padding 64 ]
+        (Element.column
+            [ Element.width (Element.maximum 512 Element.fill)
+            , Element.spacing 48
+            ]
+            [ Element.column
+                [ Element.width Element.fill
+                , Element.spacing 32
+                ]
+                [ Element.el
+                    [ Font.size 24
+                    , Region.heading 2
+                    ]
+                    (Element.text "With automatic activation")
+                , Tabs.viewCustom views
+                    { tabs = List.map (toTab "automatic") allTabs
+                    , active = model.activeAutomatic
+                    , label = "Entertainment"
+                    , orientation = Tabs.Horizontal
+                    , activation = Tabs.Automatic
+                    , onChange = UserChangedTabAutomatic
+                    }
+                ]
+            , Element.column
+                [ Element.width Element.fill
+                , Element.spacing 32
+                ]
+                [ Element.el
+                    [ Font.size 24
+                    , Region.heading 2
+                    ]
+                    (Element.text "With manual activation")
+                , Tabs.viewCustom views
+                    { tabs = List.map (toTab "manual") allTabs
+                    , active = model.activeManual
+                    , label = "Entertainment"
+                    , orientation = Tabs.Horizontal
+                    , activation = Tabs.Manual
+                    , onChange = UserChangedTabManual
+                    }
+                ]
+            ]
         )
 
 
-toTab : ( String, String ) -> Tabs.Tab (Element Msg) String
-toTab ( title, content ) =
+toTab : String -> ( String, String ) -> Tabs.Tab (Element Msg) String
+toTab id ( title, content ) =
     { tag = title
-    , id = title
+    , id = title ++ "-" ++ id
     , label = Element.text title
     , panel =
         Element.paragraph []
@@ -97,12 +150,28 @@ views =
             Element.column
                 [ attribute "role" attrs.role
                 , attribute "aria-label" attrs.ariaLabel
+                , Element.width Element.fill
+                , Element.height Element.fill
                 ]
-                [ Element.row [] tabs
-                , Element.column [] panels
+                [ Element.row
+                    [ Element.width Element.fill
+                    , Border.widthEach
+                        { top = 0
+                        , bottom = 1
+                        , left = 0
+                        , right = 0
+                        }
+                    , Border.color gray300
+                    ]
+                    tabs
+                , Element.column
+                    [ Element.width Element.fill
+                    , Element.height Element.fill
+                    ]
+                    panels
                 ]
     , tab =
-        \attrs label ->
+        \attrs label active ->
             let
                 withTabindex elAttrs =
                     case attrs.tabindex of
@@ -125,15 +194,46 @@ views =
                  , attribute "aria-controls" attrs.ariaControls
                  , attribute "id" attrs.id
                  , preventDefaultOn "keydown" attrs.preventDefaultOnKeydown
-                 , Element.padding 8
-                 , Border.width 2
+                 , Element.width Element.fill
+                 , Element.height (Element.px 48)
+                 , Border.widthEach
+                    { top = 0
+                    , bottom = 2
+                    , left = 0
+                    , right = 0
+                    }
+                 , if active then
+                    Border.color primary
+
+                   else
+                    Border.color transparent
+                 , if active then
+                    Font.color primary
+
+                   else
+                    Font.color black
+                 , Element.mouseDown
+                    [ Font.color primaryPressed
+                    , Background.color overlayPressedLight
+                    ]
+                 , Element.mouseOver
+                    [ Font.color primaryHover
+                    , Background.color overlayHoverLight
+                    ]
                  , Element.focused
-                    [ Border.color (Element.rgb 0 0 1) ]
+                    [ Font.color primaryFocused
+                    , Background.color overlayFocusLight
+                    ]
                  ]
                     |> withTabindex
                 )
                 { onPress = Just attrs.onClick
-                , label = label
+                , label =
+                    Element.el
+                        [ Element.centerX
+                        , Element.centerY
+                        ]
+                        label
                 }
     , panel =
         \attrs panel ->
@@ -158,10 +258,12 @@ views =
                 ([ attribute "role" attrs.role
                  , attribute "id" attrs.id
                  , attribute "aria-labelledby" attrs.ariaLabelledby
+                 , Element.width Element.fill
+                 , Element.height Element.fill
                  , Element.padding 8
-                 , Border.width 2
                  , Element.focused
-                    [ Border.color (Element.rgb 0 0 1) ]
+                    [ Background.color overlayFocusLight
+                    ]
                  ]
                     |> withHidden
                     |> withTabindex
@@ -180,6 +282,66 @@ preventDefaultOn event decoder =
 
 style property value =
     Element.htmlAttribute (Html.Attributes.style property value)
+
+
+primary : Color
+primary =
+    Element.rgb255 0 153 212
+
+
+primaryHover : Color
+primaryHover =
+    Element.rgb255 10 157 214
+
+
+primaryFocused : Color
+primaryFocused =
+    Element.rgb255 31 165 217
+
+
+primaryPressed : Color
+primaryPressed =
+    Element.rgb255 82 186 226
+
+
+transparent : Color
+transparent =
+    Element.rgba 0 0 0 0
+
+
+black : Color
+black =
+    Element.rgb255 0 0 0
+
+
+gray300 : Color
+gray300 =
+    Element.rgb255 224 224 224
+
+
+overlayHoverLight : Color
+overlayHoverLight =
+    setAlpha 0.04 primary
+
+
+overlayFocusLight : Color
+overlayFocusLight =
+    setAlpha 0.12 primary
+
+
+overlayPressedLight : Color
+overlayPressedLight =
+    setAlpha 0.12 primary
+
+
+setAlpha : Float -> Color -> Color
+setAlpha alpha color_ =
+    let
+        rgb =
+            Element.toRgb color_
+    in
+    Element.fromRgb
+        { rgb | alpha = alpha }
 
 
 {-| Taken from <https://w3c.github.io/aria-practices/examples/tabs/tabs-2/tabs.html>

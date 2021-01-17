@@ -64,7 +64,7 @@ type Orientation
 -}
 type alias Views node msg =
     { tabs : TabsAttrs -> List node -> List node -> node
-    , tab : TabAttrs msg -> node -> node
+    , tab : TabAttrs msg -> node -> Bool -> node
     , panel : PanelAttrs -> node -> node
     }
 
@@ -113,7 +113,7 @@ viewCustom views config =
         (List.map (viewPanel views.panel config.active) config.tabs)
 
 
-viewTab : (TabAttrs msg -> node -> node) -> Config node tag msg -> Tab node tag -> node
+viewTab : (TabAttrs msg -> node -> Bool -> node) -> Config node tag msg -> Tab node tag -> node
 viewTab toNode config tab =
     let
         handleKey key =
@@ -183,6 +183,7 @@ viewTab toNode config tab =
                 Just -1
         }
         tab.label
+        (config.active == tab.tag)
 
 
 viewPanel : (PanelAttrs -> node -> node) -> tag -> Tab node tag -> node
@@ -312,8 +313,8 @@ htmlTabs attrs tabs panels =
         )
 
 
-htmlTab : TabAttrs msg -> Html msg -> Html msg
-htmlTab attrs label =
+htmlTab : TabAttrs msg -> Html msg -> Bool -> Html msg
+htmlTab attrs label _ =
     let
         withTabindex htmlAttrs =
             case attrs.tabindex of
