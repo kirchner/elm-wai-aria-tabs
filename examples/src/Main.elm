@@ -21,21 +21,21 @@ main =
 
 
 type alias Model =
-    { active : String
-    , activation : Tabs.Activation
+    { activeAutomatic : String
+    , activeManual : String
     }
 
 
 type Msg
     = NoOp
-    | UserChangedActivation Tabs.Activation
-    | UserChangedTab String (Task Browser.Dom.Error ())
+    | UserChangedTabAutomatic String (Task Browser.Dom.Error ())
+    | UserChangedTabManual String (Task Browser.Dom.Error ())
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( { active = "Nils Frahm"
-      , activation = Tabs.Automatic
+    ( { activeAutomatic = "Nils Frahm"
+      , activeManual = "Nils Frahm"
       }
     , Cmd.none
     )
@@ -47,11 +47,13 @@ update msg model =
         NoOp ->
             ( model, Cmd.none )
 
-        UserChangedActivation activation ->
-            ( { model | activation = activation }, Cmd.none )
+        UserChangedTabAutomatic active task ->
+            ( { model | activeAutomatic = active }
+            , Task.attempt (\_ -> NoOp) task
+            )
 
-        UserChangedTab active task ->
-            ( { model | active = active }
+        UserChangedTabManual active task ->
+            ( { model | activeManual = active }
             , Task.attempt (\_ -> NoOp) task
             )
 
@@ -66,51 +68,51 @@ view model =
     Html.div
         []
         [ Html.node "style" [] [ Html.text css ]
-        , Tabs.view
-            { tabs = List.map toTab tabs
-            , active = model.active
+        , Html.h1 []
+            [ Html.text "Tabs" ]
+        , Html.p []
+            [ Html.text """
+                This package offers an implementation of the Tabs widget as specified in the
+                WAI-ARIA Authoring Practices 1.1:
+                """
+            ]
+        , Html.blockquote []
+            [ Html.text
+                """
+                Tabs are a set of layered sections of
+                content, known as tab panels, that display one panel of content at a time.
+                Each tab panel has an associated tab element, that when activated, displays
+                the panel. The list of tab elements is arranged along one edge of the
+                currently displayed panel, most commonly the top edge.
+                """
+            ]
+        , Html.h2 []
+            [ Html.text "Automatic activation" ]
+        , Tabs.view views
+            { tabs = List.map (toTab "automatic") tabs
+            , active = model.activeAutomatic
             , label = "Entertainment"
             , orientation = Tabs.Horizontal
-            , activation = model.activation
-            , onChange = UserChangedTab
+            , activation = Tabs.Automatic
+            , onChange = UserChangedTabAutomatic
             }
-        , Html.div
-            [ Html.Attributes.class "radio" ]
-            [ Html.input
-                [ Html.Attributes.type_ "radio"
-                , Html.Attributes.id "automatic"
-                , Html.Attributes.name "activation"
-                , Html.Attributes.checked (model.activation == Tabs.Automatic)
-                , Html.Events.on "change"
-                    (Json.Decode.succeed (UserChangedActivation Tabs.Automatic))
-                ]
-                []
-            , Html.label
-                [ Html.Attributes.for "automatic" ]
-                [ Html.text "Automatic" ]
-            ]
-        , Html.div
-            [ Html.Attributes.class "radio" ]
-            [ Html.input
-                [ Html.Attributes.type_ "radio"
-                , Html.Attributes.id "manual"
-                , Html.Attributes.name "activation"
-                , Html.Attributes.checked (model.activation == Tabs.Manual)
-                , Html.Events.on "change"
-                    (Json.Decode.succeed (UserChangedActivation Tabs.Manual))
-                ]
-                []
-            , Html.label
-                [ Html.Attributes.for "manual" ]
-                [ Html.text "Manual" ]
-            ]
+        , Html.h2 []
+            [ Html.text "Manual activation" ]
+        , Tabs.view views
+            { tabs = List.map (toTab "manual") tabs
+            , active = model.activeManual
+            , label = "Entertainment"
+            , orientation = Tabs.Horizontal
+            , activation = Tabs.Manual
+            , onChange = UserChangedTabManual
+            }
         ]
 
 
-toTab : ( String, String ) -> Tabs.Tab (Html Msg) String
-toTab ( title, content ) =
+toTab : String -> ( String, String ) -> Tabs.Tab (Html Msg) String
+toTab id ( title, content ) =
     { tag = title
-    , id = title
+    , id = title ++ "-" ++ id
     , label = Html.text title
     , panel = Html.text content
     , focusable = True
@@ -119,6 +121,16 @@ toTab ( title, content ) =
 
 
 ---- CSS
+
+
+views : Tabs.Views (Html msg) msg
+views =
+    Tabs.html
+        { container = [ Html.Attributes.class "tabs" ]
+        , tabList = []
+        , tab = always []
+        , panel = always []
+        }
 
 
 {-| Taken from <https://w3c.github.io/aria-practices/examples/tabs/tabs-2/tabs.html>
@@ -143,24 +155,16 @@ css : String
 css =
     """
 body {
-  margin: 64px;
+  margin: auto;
+  max-width: 600px;
 }
 
-.radio {
-  margin-top: 16px;
-}
-
-.tabs {
-  width: 20em;
-  font-family: "lucida grande", sans-serif;
-}
-
-[role="tablist"] {
+[role~="tablist"] {
   margin: 0 0 -0.1em;
   overflow: visible;
 }
 
-[role="tab"] {
+[role~="tab"] {
   position: relative;
   margin: 0;
   padding: 0.3em 0.5em 0.4em;
@@ -173,9 +177,9 @@ body {
   background: hsl(220, 20%, 94%);
 }
 
-[role="tab"]:hover::before,
-[role="tab"]:focus::before,
-[role="tab"][aria-selected="true"]::before {
+[role~="tab"]:hover::before,
+[role~="tab"]:focus::before,
+[role~="tab"][aria-selected="true"]::before {
   position: absolute;
   bottom: 100%;
   right: -1px;
@@ -185,17 +189,17 @@ body {
   content: "";
 }
 
-[role="tab"][aria-selected="true"] {
+[role~="tab"][aria-selected="true"] {
   border-radius: 0;
   background: hsl(220, 43%, 99%);
   outline: 0;
 }
 
-[role="tab"][aria-selected="true"]:not(:focus):not(:hover)::before {
+[role~="tab"][aria-selected="true"]:not(:focus):not(:hover)::before {
   border-top: 5px solid hsl(218, 96%, 48%);
 }
 
-[role="tab"][aria-selected="true"]::after {
+[role~="tab"][aria-selected="true"]::after {
   position: absolute;
   z-index: 3;
   bottom: -1px;
@@ -207,20 +211,20 @@ body {
   content: "";
 }
 
-[role="tab"]:hover,
-[role="tab"]:focus,
-[role="tab"]:active {
+[role~="tab"]:hover,
+[role~="tab"]:focus,
+[role~="tab"]:active {
   outline: 0;
   border-radius: 0;
   color: inherit;
 }
 
-[role="tab"]:hover::before,
-[role="tab"]:focus::before {
+[role~="tab"]:hover::before,
+[role~="tab"]:focus::before {
   border-color: hsl(20, 96%, 48%);
 }
 
-[role="tabpanel"] {
+[role~="tabpanel"] {
   position: relative;
   z-index: 2;
   padding: 0.5em 0.5em 0.7em;
@@ -230,17 +234,13 @@ body {
   background: hsl(220, 43%, 99%);
 }
 
-[role="tabpanel"].is-hidden {
-  display: none;
-}
-
-[role="tabpanel"]:focus {
+[role~="tabpanel"]:focus {
   border-color: hsl(20, 96%, 48%);
   box-shadow: 0 0 0.2em hsl(20, 96%, 48%);
   outline: 0;
 }
 
-[role="tabpanel"]:focus::after {
+[role~="tabpanel"]:focus::after {
   position: absolute;
   bottom: 0;
   right: -1px;
@@ -250,11 +250,11 @@ body {
   content: "";
 }
 
-[role="tabpanel"] p {
+[role~="tabpanel"] p {
   margin: 0;
 }
 
-[role="tabpanel"] * + p {
+[role~="tabpanel"] * + p {
   margin-top: 1em;
 }
     """

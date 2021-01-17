@@ -1,12 +1,18 @@
 module Tabs exposing
     ( Config, Tab, Activation(..), Orientation(..), view
-    , Views, TabsAttrs, TabAttrs, PanelAttrs, viewCustom
+    , Views, html
+    , TabsAttrs, TabAttrs, PanelAttrs, custom
     )
 
 {-|
 
 @docs Config, Tab, Activation, Orientation, view
-@docs Views, TabsAttrs, TabAttrs, PanelAttrs, viewCustom
+
+
+# Customize view
+
+@docs Views, html
+@docs TabsAttrs, TabAttrs, PanelAttrs, custom
 
 -}
 
@@ -62,11 +68,30 @@ type Orientation
 
 {-| TODO
 -}
-type alias Views node msg =
-    { tabs : TabsAttrs -> List node -> List node -> node
-    , tab : TabAttrs msg -> node -> Bool -> node
-    , panel : PanelAttrs -> node -> node
-    }
+type Views node msg
+    = Views
+        { tabs :
+            TabsAttrs
+            ->
+                { tabs : List node
+                , panels : List node
+                }
+            -> node
+        , tab :
+            TabAttrs msg
+            ->
+                { label : node
+                , active : Bool
+                }
+            -> node
+        , panel :
+            PanelAttrs
+            ->
+                { panel : node
+                , active : Bool
+                }
+            -> node
+        }
 
 
 {-| TODO
@@ -86,7 +111,7 @@ type alias TabAttrs msg =
     , id : String
     , onClick : msg
     , preventDefaultOnKeydown : Decoder ( msg, Bool )
-    , tabindex : Maybe Int
+    , tabindex : Int
     }
 
 
@@ -103,17 +128,28 @@ type alias PanelAttrs =
 
 {-| TODO
 -}
-viewCustom : Views node msg -> Config node tab msg -> node
-viewCustom views config =
+view : Views node msg -> Config node tab msg -> node
+view (Views views) config =
     views.tabs
         { role = "tablist"
         , ariaLabel = config.label
         }
-        (List.map (viewTab views.tab config) config.tabs)
-        (List.map (viewPanel views.panel config.active) config.tabs)
+        { tabs = List.map (viewTab views.tab config) config.tabs
+        , panels = List.map (viewPanel views.panel config.active) config.tabs
+        }
 
 
-viewTab : (TabAttrs msg -> node -> Bool -> node) -> Config node tag msg -> Tab node tag -> node
+viewTab :
+    (TabAttrs msg
+     ->
+        { label : node
+        , active : Bool
+        }
+     -> node
+    )
+    -> Config node tag msg
+    -> Tab node tag
+    -> node
 viewTab toNode config tab =
     let
         handleKey key =
@@ -164,7 +200,7 @@ viewTab toNode config tab =
                 >> Maybe.withDefault (Json.Decode.fail "not handling that key here")
     in
     toNode
-        { role = "tab"
+        { role = "tab button"
         , ariaSelected = config.active == tab.tag
         , ariaControls = idPanel tab.id
         , id = idTab tab.id
@@ -174,19 +210,27 @@ viewTab toNode config tab =
                 (Json.Decode.field "key" Json.Decode.string)
         , tabindex =
             if config.active == tab.tag then
-                -- FIXME according to spec we want 'Nothing' here, but then the
-                -- elm-ui version will not work, since elm-ui buttons are
-                -- implemented as div's with role="button"
-                Just 0
+                0
 
             else
-                Just -1
+                -1
         }
-        tab.label
-        (config.active == tab.tag)
+        { label = tab.label
+        , active = config.active == tab.tag
+        }
 
 
-viewPanel : (PanelAttrs -> node -> node) -> tag -> Tab node tag -> node
+viewPanel :
+    (PanelAttrs
+     ->
+        { panel : node
+        , active : Bool
+        }
+     -> node
+    )
+    -> tag
+    -> Tab node tag
+    -> node
 viewPanel toNode active tab =
     toNode
         { role = "tabpanel"
@@ -200,7 +244,9 @@ viewPanel toNode active tab =
                 Nothing
         , hidden = active /= tab.tag
         }
-        tab.panel
+        { panel = tab.panel
+        , active = active == tab.tag
+        }
 
 
 
@@ -286,44 +332,88 @@ idTab id =
 
 
 
----- HTML
+---- VIEWS
 
 
 {-| TODO
 -}
-view : Config (Html msg) tab msg -> Html msg
-view =
-    viewCustom
-        { tabs = htmlTabs
-        , tab = htmlTab
-        , panel = htmlPanel
+custom :
+    { tabs :
+        TabsAttrs
+        ->
+            { tabs : List node
+            , panels : List node
+            }
+        -> node
+    , tab :
+        TabAttrs msg
+        ->
+            { label : node
+            , active : Bool
+            }
+        -> node
+    , panel :
+        PanelAttrs
+        ->
+            { panel : node
+            , active : Bool
+            }
+        -> node
+    }
+    -> Views node msg
+custom config =
+    Views config
+
+
+{-| TODO
+-}
+html :
+    { container : List (Attribute msg)
+    , tabList : List (Attribute msg)
+    , tab : Bool -> List (Attribute msg)
+    , panel : Bool -> List (Attribute msg)
+    }
+    -> Views (Html msg) msg
+html config =
+    Views
+        { tabs = htmlTabs config.container config.tabList
+        , tab = htmlTab config.tab
+        , panel = htmlPanel config.panel
         }
 
 
-htmlTabs : TabsAttrs -> List (Html msg) -> List (Html msg) -> Html msg
-htmlTabs attrs tabs panels =
+htmlTabs :
+    List (Attribute msg)
+    -> List (Attribute msg)
+    -> TabsAttrs
+    ->
+        { tabs : List (Html msg)
+        , panels : List (Html msg)
+        }
+    -> Html msg
+htmlTabs containerAttrs tabListAttrs attrs { tabs, panels } =
     Html.div
-        [ Html.Attributes.class "tabs" ]
+        containerAttrs
         (Html.div
-            [ role attrs.role
-            , ariaLabel attrs.ariaLabel
-            ]
+            ([ role attrs.role
+             , ariaLabel attrs.ariaLabel
+             ]
+                ++ tabListAttrs
+            )
             tabs
             :: panels
         )
 
 
-htmlTab : TabAttrs msg -> Html msg -> Bool -> Html msg
-htmlTab attrs label _ =
-    let
-        withTabindex htmlAttrs =
-            case attrs.tabindex of
-                Nothing ->
-                    htmlAttrs
-
-                Just tabindex ->
-                    Html.Attributes.tabindex tabindex :: htmlAttrs
-    in
+htmlTab :
+    (Bool -> List (Attribute msg))
+    -> TabAttrs msg
+    ->
+        { label : Html msg
+        , active : Bool
+        }
+    -> Html msg
+htmlTab tabAttrs attrs { label, active } =
     Html.button
         ([ Html.Attributes.type_ "button"
          , role attrs.role
@@ -332,14 +422,22 @@ htmlTab attrs label _ =
          , Html.Attributes.id attrs.id
          , Html.Events.onClick attrs.onClick
          , Html.Events.preventDefaultOn "keydown" attrs.preventDefaultOnKeydown
+         , Html.Attributes.tabindex attrs.tabindex
          ]
-            |> withTabindex
+            |> List.append (tabAttrs active)
         )
         [ label ]
 
 
-htmlPanel : PanelAttrs -> Html msg -> Html msg
-htmlPanel attrs panel =
+htmlPanel :
+    (Bool -> List (Attribute msg))
+    -> PanelAttrs
+    ->
+        { panel : Html msg
+        , active : Bool
+        }
+    -> Html msg
+htmlPanel panelAttrs attrs { panel, active } =
     let
         withTabindex htmlAttrs =
             case attrs.tabindex of
@@ -351,8 +449,7 @@ htmlPanel attrs panel =
 
         withHidden htmlAttrs =
             if attrs.hidden then
-                -- TODO hide
-                Html.Attributes.class "is-hidden" :: htmlAttrs
+                Html.Attributes.style "display" "none" :: htmlAttrs
 
             else
                 htmlAttrs
@@ -364,6 +461,7 @@ htmlPanel attrs panel =
          ]
             |> withTabindex
             |> withHidden
+            |> List.append (panelAttrs active)
         )
         [ panel ]
 
