@@ -1,18 +1,26 @@
 module Tabs exposing
-    ( Config, Tab, Activation(..), Orientation(..), view
+    ( viewStarter
+    , Config, Label, labelledby, label, Tab, Activation(..), Orientation(..)
+    , view
     , Views, html
-    , TabsAttrs, TabAttrs, PanelAttrs, custom
+    , custom, TabsAttrs, TabAttrs, PanelAttrs
     )
 
 {-|
 
-@docs Config, Tab, Activation, Orientation, view
+@docs viewStarter
+@docs Config, Label, labelledby, label, Tab, Activation, Orientation
 
 
-# Customize view
+# View customization
 
+@docs view
 @docs Views, html
-@docs TabsAttrs, TabAttrs, PanelAttrs, custom
+
+
+## Advanced customization
+
+@docs custom, TabsAttrs, TabAttrs, PanelAttrs
 
 -}
 
@@ -25,19 +33,63 @@ import List.Extra
 import Task exposing (Task)
 
 
-{-| TODO
+{-|
+
+  - **label**: Specify how the tabs are labelled. See `Label` for possible
+    options.
+  - **tabs**: A list of all tabs with its panels.
+  - **active**: The currently active tab.
+  - **onChange**: Message handler for changing the active tab. You must
+    `Task.attempt` the second argument in your update function to make sure the
+    correct tab receives focus.
+  - **orientation**: Indicate if the tab list is oriented horizontally or
+    vertically, this should match the actual layout.
+  - **activation**: How are tabs activated? See `Activation` for possible
+    options.
+
 -}
 type alias Config node tab msg =
-    { tabs : List (Tab node tab)
+    { label : Label
+    , tabs : List (Tab node tab)
     , active : tab
-    , label : String
+    , onChange : tab -> Task Browser.Dom.Error () -> msg
     , orientation : Orientation
     , activation : Activation
-    , onChange : tab -> Task Browser.Dom.Error () -> msg
     }
 
 
-{-| TODO
+{-| There are two ways to label tabs: it can be
+`labelledby` by another DOM element with the given id or it can provide its own
+`label`.
+-}
+type Label
+    = Label String
+    | LabelledBy String
+
+
+{-| -}
+labelledby : String -> Label
+labelledby =
+    LabelledBy
+
+
+{-| -}
+label : String -> Label
+label =
+    Label
+
+
+{-|
+
+  - **tag**: Unique tag to show the currently active tab.
+  - **id**: This is used to generate CSS ids of the tab and its panel. This
+    must be unique within your page.
+  - **label**: Displayed label of the tab within the tab list.
+  - **panel**: Content of the tab panel associated to the tab.
+  - **focusable**: Indicate whether the panel itself can receive focus. Is is
+    best practice to to make the panel focusable if it does not contain any other
+    elements which can receive focus.
+
 -}
 type alias Tab node tag =
     { tag : tag
@@ -48,15 +100,21 @@ type alias Tab node tag =
     }
 
 
-{-| TODO
+{-| From the [WAI-ARIA Authoring
+Practices](https://w3c.github.io/aria-practices/#examples-13):
+
+  - Tabs With `Automatic` Activation: A tabs widget where tabs are
+    automatically activated and their panel is displayed when they receive focus.
+  - Tabs With `Manual` Activation: A tabs widget where users activate a tab and
+    display its panel by pressing Space or Enter.
+
 -}
 type Activation
     = Automatic
     | Manual
 
 
-{-| TODO
--}
+{-| -}
 type Orientation
     = Horizontal
     | Vertical
@@ -66,7 +124,7 @@ type Orientation
 ---- VIEW
 
 
-{-| TODO
+{-| Opaque type for providing view customization of the tabs widget.
 -}
 type Views node msg
     = Views
@@ -94,15 +152,33 @@ type Views node msg
         }
 
 
-{-| TODO
+{-| Make sure to add HTML attributes for all attributes in this record to the
+tabs list container.
+
+  - **role**: The `role` HTML attribute.
+  - **ariaLabel**: The `aria-label` HTML attribute.
+  - **ariaLabel**: The `aria-labelledby` HTML attribute.
+
 -}
 type alias TabsAttrs =
     { role : String
-    , ariaLabel : String
+    , ariaLabel : Maybe String
+    , ariaLabelledBy : Maybe String
     }
 
 
-{-| TODO
+{-| Make sure to add HTML attributes and event handlers for all attributes in
+this record to the tab.
+
+  - **role**: The `role` HTML attribute.
+  - **ariaSelected**: The `aria-selected` HTML attribute.
+  - **ariaControls**: The `aria-controls` HTML attribute.
+  - **id**: The CSS id.
+  - **onClick**: Attach this to an `onclick` event handler.
+  - **preventDefaultOnKeydown**: Attach this to an `onkeydown` event handler
+    which can prevent default.
+  - **tabindex**: The `tabindex` HTML attribute.
+
 -}
 type alias TabAttrs msg =
     { role : String
@@ -115,7 +191,15 @@ type alias TabAttrs msg =
     }
 
 
-{-| TODO
+{-| Make sure to add HTML attributes for all attributes in this record to the panel.
+
+  - **role**: The `role` HTML attribute.
+  - **id**: The CSS id.
+  - **ariaLabelledby**: The `aria-labelledby` HTML attribute.
+  - **tabindex**: The `tabindex` HTML attribute.
+  - **hidden**: Is the panel hidden? One way to hide it, is by adding `display:
+    none;`.
+
 -}
 type alias PanelAttrs =
     { role : String
@@ -126,13 +210,153 @@ type alias PanelAttrs =
     }
 
 
-{-| TODO
+{-| Render a tabs widget with default styling. Take a look at `view` and
+`Views` for customization possibilities.
+-}
+viewStarter : Config (Html msg) tab msg -> Html msg
+viewStarter =
+    view
+        (Views
+            { tabs =
+                \tabsAttrs data ->
+                    Html.div
+                        []
+                        [ Html.node "style" [] [ Html.text css ]
+                        , htmlTabs [ Html.Attributes.class "tabs" ] [] tabsAttrs data
+                        ]
+            , tab = htmlTab (always [])
+            , panel = htmlPanel (always [])
+            }
+        )
+
+
+{-| Taken from <https://w3c.github.io/aria-practices/examples/tabs/css/tabs.css>
+-}
+css : String
+css =
+    """
+[role~="tablist"] {
+  margin: 0 0 -0.1em;
+  overflow: visible;
+}
+
+[role~="tab"] {
+  position: relative;
+  margin: 0;
+  padding: 0.3em 0.5em 0.4em;
+  border: 1px solid hsl(219, 1%, 72%);
+  border-radius: 0.2em 0.2em 0 0;
+  box-shadow: 0 0 0.2em hsl(219, 1%, 72%);
+  overflow: visible;
+  font-family: inherit;
+  font-size: inherit;
+  background: hsl(220, 20%, 94%);
+}
+
+[role~="tab"]:hover::before,
+[role~="tab"]:focus::before,
+[role~="tab"][aria-selected="true"]::before {
+  position: absolute;
+  bottom: 100%;
+  right: -1px;
+  left: -1px;
+  border-radius: 0.2em 0.2em 0 0;
+  border-top: 3px solid hsl(20, 96%, 48%);
+  content: "";
+}
+
+[role~="tab"][aria-selected="true"] {
+  border-radius: 0;
+  background: hsl(220, 43%, 99%);
+  outline: 0;
+}
+
+[role~="tab"][aria-selected="true"]:not(:focus):not(:hover)::before {
+  border-top: 5px solid hsl(218, 96%, 48%);
+}
+
+[role~="tab"][aria-selected="true"]::after {
+  position: absolute;
+  z-index: 3;
+  bottom: -1px;
+  right: 0;
+  left: 0;
+  height: 0.3em;
+  background: hsl(220, 43%, 99%);
+  box-shadow: none;
+  content: "";
+}
+
+[role~="tab"]:hover,
+[role~="tab"]:focus,
+[role~="tab"]:active {
+  outline: 0;
+  border-radius: 0;
+  color: inherit;
+}
+
+[role~="tab"]:hover::before,
+[role~="tab"]:focus::before {
+  border-color: hsl(20, 96%, 48%);
+}
+
+[role~="tabpanel"] {
+  position: relative;
+  z-index: 2;
+  padding: 0.5em 0.5em 0.7em;
+  border: 1px solid hsl(219, 1%, 72%);
+  border-radius: 0 0.2em 0.2em 0.2em;
+  box-shadow: 0 0 0.2em hsl(219, 1%, 72%);
+  background: hsl(220, 43%, 99%);
+}
+
+[role~="tabpanel"]:focus {
+  border-color: hsl(20, 96%, 48%);
+  box-shadow: 0 0 0.2em hsl(20, 96%, 48%);
+  outline: 0;
+}
+
+[role~="tabpanel"]:focus::after {
+  position: absolute;
+  bottom: 0;
+  right: -1px;
+  left: -1px;
+  border-bottom: 3px solid hsl(20, 96%, 48%);
+  border-radius: 0 0 0.2em 0.2em;
+  content: "";
+}
+
+[role~="tabpanel"] p {
+  margin: 0;
+}
+
+[role~="tabpanel"] * + p {
+  margin-top: 1em;
+}
+    """
+
+
+{-| Render a (customized) tabs widget. You must provide `Views` for rendering
+and a `Config` containing a list of all tabs and the currently active tab.
 -}
 view : Views node msg -> Config node tab msg -> node
 view (Views views) config =
     views.tabs
         { role = "tablist"
-        , ariaLabel = config.label
+        , ariaLabel =
+            case config.label of
+                Label theLabel ->
+                    Just theLabel
+
+                LabelledBy _ ->
+                    Nothing
+        , ariaLabelledBy =
+            case config.label of
+                Label _ ->
+                    Nothing
+
+                LabelledBy theId ->
+                    Just theId
         }
         { tabs = List.map (viewTab views.tab config) config.tabs
         , panels = List.map (viewPanel views.panel config.active) config.tabs
@@ -335,7 +559,11 @@ idTab id =
 ---- VIEWS
 
 
-{-| TODO
+{-| If you want to use other UI libraries like `rtfeldman/elm-css` or
+`mdgriffith/elm-ui` you have to generate `Views` using this function. Take
+a look at the implementation of `html` for a starting point. The `examples/`
+folder of the package repository contains an implementation for
+`mdgriffith/elm-ui`.
 -}
 custom :
     { tabs :
@@ -365,7 +593,29 @@ custom config =
     Views config
 
 
-{-| TODO
+{-| Generate view customization the standard `elm/html` package.
+
+The DOM structure of the tabs will be something like this:
+
+    tabs =
+        Html.div
+            [ ... ] -- container attributes
+            [ Html.div
+                [ ... ] -- tabList attributes
+                [ tabs ]
+            , panels
+            ]
+
+    tab =
+        Html.button
+            [ ... ] -- tab attributes
+            [ tabLabel ]
+
+    panel =
+        Html.div
+            [ ... ] -- panel attributes
+            [ panelContent ]
+
 -}
 html :
     { container : List (Attribute msg)
@@ -392,13 +642,30 @@ htmlTabs :
         }
     -> Html msg
 htmlTabs containerAttrs tabListAttrs attrs { tabs, panels } =
+    let
+        withAriaLabel htmlAttrs =
+            case attrs.ariaLabel of
+                Nothing ->
+                    htmlAttrs
+
+                Just theLabel ->
+                    ariaLabel theLabel :: htmlAttrs
+
+        withAriaLabelledby htmlAttrs =
+            case attrs.ariaLabelledBy of
+                Nothing ->
+                    htmlAttrs
+
+                Just theId ->
+                    ariaLabelledby theId :: htmlAttrs
+    in
     Html.div
         containerAttrs
         (Html.div
-            ([ role attrs.role
-             , ariaLabel attrs.ariaLabel
-             ]
-                ++ tabListAttrs
+            ([ role attrs.role ]
+                |> withAriaLabel
+                |> withAriaLabelledby
+                |> List.append tabListAttrs
             )
             tabs
             :: panels
@@ -413,7 +680,7 @@ htmlTab :
         , active : Bool
         }
     -> Html msg
-htmlTab tabAttrs attrs { label, active } =
+htmlTab tabAttrs attrs data =
     Html.button
         ([ Html.Attributes.type_ "button"
          , role attrs.role
@@ -424,9 +691,9 @@ htmlTab tabAttrs attrs { label, active } =
          , Html.Events.preventDefaultOn "keydown" attrs.preventDefaultOnKeydown
          , Html.Attributes.tabindex attrs.tabindex
          ]
-            |> List.append (tabAttrs active)
+            |> List.append (tabAttrs data.active)
         )
-        [ label ]
+        [ data.label ]
 
 
 htmlPanel :

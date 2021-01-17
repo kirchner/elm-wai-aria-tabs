@@ -104,7 +104,7 @@ view model =
                 , Tabs.view views
                     { tabs = List.map (toTab "automatic") allTabs
                     , active = model.activeAutomatic
-                    , label = "Entertainment"
+                    , label = Tabs.label "Entertainment"
                     , orientation = Tabs.Horizontal
                     , activation = Tabs.Automatic
                     , onChange = UserChangedTabAutomatic
@@ -122,7 +122,7 @@ view model =
                 , Tabs.view views
                     { tabs = List.map (toTab "manual") allTabs
                     , active = model.activeManual
-                    , label = "Entertainment"
+                    , label = Tabs.label "Entertainment"
                     , orientation = Tabs.Horizontal
                     , activation = Tabs.Manual
                     , onChange = UserChangedTabManual
@@ -234,11 +234,29 @@ el config =
     Tabs.custom
         { tabs =
             \attrs { tabs, panels } ->
+                let
+                    withAriaLabel elAttrs =
+                        case attrs.ariaLabel of
+                            Nothing ->
+                                elAttrs
+
+                            Just theLabel ->
+                                attribute "aria-label" theLabel :: elAttrs
+
+                    withAriaLabelledby elAttrs =
+                        case attrs.ariaLabelledBy of
+                            Nothing ->
+                                elAttrs
+
+                            Just theId ->
+                                attribute "aria-labelledby" theId :: elAttrs
+                in
                 Element.column
                     ([ attribute "role" attrs.role
-                     , attribute "aria-label" attrs.ariaLabel
                      ]
-                        ++ config.container
+                        |> withAriaLabel
+                        |> withAriaLabelledby
+                        |> List.append config.container
                     )
                     [ Element.row config.tabList tabs
                     , Element.column
