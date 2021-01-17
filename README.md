@@ -33,7 +33,70 @@ The minimal code to get working tabs with automatic activation would be
 something like this:
 
 ```elm
-TODO
+import Browser.Dom
+import Html exposing (Html)
+import Tabs
+import Task exposing (Task)
+
+
+
+type alias Model =
+    { active : String }
+
+
+type Msg
+    = NoOp
+    | UserChangedTab String (Task Browser.Dom.Error ())
+
+
+init : ( Model, Cmd Msg )
+init =
+    ( { active = "Nils Frahm" }
+    , Cmd.none
+    )
+
+
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
+    case msg of
+        NoOp ->
+            ( model, Cmd.none )
+
+        UserChangedTab active task ->
+            ( { model | active = active }
+            , Task.attempt (\_ -> NoOp) task
+            )
+
+
+view : Model -> Html Msg
+view model =
+    Tabs.viewStarter
+        { tabs = List.map toTab tabs
+        , active = model.active
+        , label = Tabs.label "Entertainment"
+        , orientation = Tabs.Horizontal
+        , activation = Tabs.Automatic
+        , onChange = UserChangedTab
+        }
+
+
+toTab : String -> ( String, String ) -> Tabs.Tab (Html Msg) String
+toTab id ( title, content ) =
+    { tag = title
+    , id = title ++ "-" ++ id
+    , label = Html.text title
+    , panel = Html.text content
+    , focusable = True
+    }
+
+
+tabs : List ( String, String )
+tabs =
+    [ ( "Nils Frahm"
+      , "Nils Frahm is a ..."
+      )
+    , ...
+    ]
 ```
 
 
