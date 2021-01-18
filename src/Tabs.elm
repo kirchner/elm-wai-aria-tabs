@@ -45,8 +45,8 @@ type alias Config node tab msg =
 
 
 {-| There are two ways to label tabs: it can be
-`labelledby` by another DOM element with the given id or it can provide its own
-`label`.
+[`labelledby`](Tabs#labelledby) by another DOM element with the given id or it
+can provide its own [`label`](Tabs#label).
 -}
 type Label
     = Label String
@@ -204,12 +204,13 @@ following fields:
     for the entry in the tablist, as well as for tagging the currently active tab.
   - **active**: The currently active tab.
   - **onChange**: Message handler for changing the active tab. You must
-    `Task.attempt` the second argument in your update function to make sure the
-    correct tab receives focus.
+    [`Task.attempt`](https://package.elm-lang.org/packages/elm/core/latest/Task#attempt)
+    the second argument in your update function to make sure the correct tab
+    receives focus.
 
 **NOTE**: This function is meant to get you started with this package. If you
 need more then one tabs widget on your page or want custom styling and
-interaction, you should take a look at the `view` function below.
+interaction, you should take a look at the [`view`](Tabs#view) function below.
 
 -}
 viewStarter :
@@ -361,21 +362,22 @@ css =
     """
 
 
-{-| Render a (customized) tabs widget. You must provide `Views` for rendering
-and the following configuration fields:
+{-| Render a (customized) tabs widget. You must provide [`Views`](Tabs#Views)
+for rendering and the following configuration fields:
 
-  - **label**: Specify how the tabs are labelled. See `Label` for possible
-    options.
-  - **tabs**: A list of all tabs with its panels. See `Tab` for a description
-    of its fields.
+  - **label**: Specify how the tabs are labelled. See [`Label`](Tabs#Label) for
+    possible options.
+  - **tabs**: A list of all tabs with its panels. See [`Tab`](Tabs#Tab) for
+    a description of its fields.
   - **active**: The currently active tab.
   - **onChange**: Message handler for changing the active tab. You must
-    `Task.attempt` the second argument in your update function to make sure the
-    correct tab receives focus.
+    [`Task.attempt`](https://package.elm-lang.org/packages/elm/core/latest/Task#attempt)
+    the second argument in your update function to make sure the correct tab
+    receives focus.
   - **orientation**: Indicate if the tab list is oriented horizontally or
     vertically, this should match the actual layout.
-  - **activation**: How are tabs activated? See `Activation` for possible
-    options.
+  - **activation**: How are tabs activated? See [`Activation`](Tabs#Activation)
+    for possible options.
 
 -}
 view :
@@ -608,11 +610,15 @@ idTab id =
 ---- VIEWS
 
 
-{-| If you want to use other UI libraries like `rtfeldman/elm-css` or
-`mdgriffith/elm-ui` you have to generate `Views` using this function. Take
-a look at the implementation of `html` for a starting point. The `examples/`
+{-| If you want to use other UI libraries like
+[`rtfeldman/elm-css`](https://package.elm-lang.org/packages/rtfeldman/elm-css/latest/)
+or
+[`mdgriffith/elm-ui`](https://package.elm-lang.org/packages/mdgriffith/elm-ui/latest/)
+you have to generate [`Views`](Tabs#Views) using this function. Take a look at
+the implementation of [`html`](Tabs#html) for a starting point. The
+[`examples/`](https://github.com/kirchner/elm-wai-aria-tabs/tree/main/examples)
 folder of the package repository contains an implementation for
-`mdgriffith/elm-ui`.
+[`mdgriffith/elm-ui`](https://package.elm-lang.org/packages/mdgriffith/elm-ui/latest/).
 -}
 custom :
     { tabs :
@@ -642,7 +648,8 @@ custom config =
     Views config
 
 
-{-| Generate view customization the standard `elm/html` package.
+{-| Generate view customization the standard
+[`elm/html`](https://package.elm-lang.org/packages/elm/html/latest/) package.
 
 The DOM structure of the tabs will be something like this:
 
