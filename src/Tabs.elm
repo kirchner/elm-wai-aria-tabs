@@ -34,21 +34,6 @@ import List.Extra
 import Task exposing (Task)
 
 
-{-|
-
-  - **label**: Specify how the tabs are labelled. See `Label` for possible
-    options.
-  - **tabs**: A list of all tabs with its panels.
-  - **active**: The currently active tab.
-  - **onChange**: Message handler for changing the active tab. You must
-    `Task.attempt` the second argument in your update function to make sure the
-    correct tab receives focus.
-  - **orientation**: Indicate if the tab list is oriented horizontally or
-    vertically, this should match the actual layout.
-  - **activation**: How are tabs activated? See `Activation` for possible
-    options.
-
--}
 type alias Config node tab msg =
     { label : Label
     , tabs : List (Tab node tab)
