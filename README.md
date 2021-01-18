@@ -70,24 +70,18 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
+    let
+        toTab ( title, content ) =
+            { label = title
+            , panel = Html.text content
+            }
+    in
     Tabs.viewStarter
         { tabs = List.map toTab tabs
         , active = model.active
-        , label = Tabs.label "Entertainment"
-        , orientation = Tabs.Horizontal
-        , activation = Tabs.Automatic
+        , label = "Entertainment"
         , onChange = UserChangedTab
         }
-
-
-toTab : String -> ( String, String ) -> Tabs.Tab (Html Msg) String
-toTab id ( title, content ) =
-    { tag = title
-    , id = title ++ "-" ++ id
-    , label = Html.text title
-    , panel = Html.text content
-    , focusable = True
-    }
 
 
 tabs : List ( String, String )

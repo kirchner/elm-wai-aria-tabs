@@ -1,7 +1,7 @@
 module Tabs exposing
     ( viewStarter
-    , Config, Label, labelledby, label, Tab, Activation(..), Orientation(..)
     , view
+    , Label, labelledby, label, Tab, Activation(..), Orientation(..)
     , Views, html
     , custom, TabsAttrs, TabAttrs, PanelAttrs
     )
@@ -9,12 +9,13 @@ module Tabs exposing
 {-|
 
 @docs viewStarter
-@docs Config, Label, labelledby, label, Tab, Activation, Orientation
+
+@docs view
+@docs Label, labelledby, label, Tab, Activation, Orientation
 
 
 # View customization
 
-@docs view
 @docs Views, html
 
 
@@ -210,11 +211,43 @@ type alias PanelAttrs =
     }
 
 
-{-| Render a tabs widget with default styling. Take a look at `view` and
-`Views` for customization possibilities.
+{-| Render a tabs widget with default styling. You have to provide the
+following fields:
+
+  - **label**: The label of the tabs used by screen readers.
+  - **tabs**: A list of all tabs with its panels. The **label** field is used
+    for the entry in the tablist, as well as for tagging the currently active tab.
+  - **active**: The currently active tab.
+  - **onChange**: Message handler for changing the active tab. You must
+    `Task.attempt` the second argument in your update function to make sure the
+    correct tab receives focus.
+
+**NOTE**: This function is meant to get you started with this package. If you
+need more then one tabs widget on your page or want custom styling and
+interaction, you should take a look at the `view` function below.
+
 -}
-viewStarter : Config (Html msg) tab msg -> Html msg
-viewStarter =
+viewStarter :
+    { label : String
+    , tabs :
+        List
+            { label : String
+            , panel : Html msg
+            }
+    , active : String
+    , onChange : String -> Task Browser.Dom.Error () -> msg
+    }
+    -> Html msg
+viewStarter config =
+    let
+        toTab tab =
+            { tag = tab.label
+            , id = tab.label
+            , label = Html.text tab.label
+            , panel = tab.panel
+            , focusable = True
+            }
+    in
     view
         (Views
             { tabs =
@@ -228,6 +261,13 @@ viewStarter =
             , panel = htmlPanel (always [])
             }
         )
+        { label = label config.label
+        , tabs = List.map toTab config.tabs
+        , active = config.active
+        , onChange = config.onChange
+        , orientation = Horizontal
+        , activation = Automatic
+        }
 
 
 {-| Taken from <https://w3c.github.io/aria-practices/examples/tabs/css/tabs.css>
@@ -337,9 +377,33 @@ css =
 
 
 {-| Render a (customized) tabs widget. You must provide `Views` for rendering
-and a `Config` containing a list of all tabs and the currently active tab.
+and the following configuration fields:
+
+  - **label**: Specify how the tabs are labelled. See `Label` for possible
+    options.
+  - **tabs**: A list of all tabs with its panels. See `Tab` for a description
+    of its fields.
+  - **active**: The currently active tab.
+  - **onChange**: Message handler for changing the active tab. You must
+    `Task.attempt` the second argument in your update function to make sure the
+    correct tab receives focus.
+  - **orientation**: Indicate if the tab list is oriented horizontally or
+    vertically, this should match the actual layout.
+  - **activation**: How are tabs activated? See `Activation` for possible
+    options.
+
 -}
-view : Views node msg -> Config node tab msg -> node
+view :
+    Views node msg
+    ->
+        { label : Label
+        , tabs : List (Tab node tab)
+        , active : tab
+        , onChange : tab -> Task Browser.Dom.Error () -> msg
+        , orientation : Orientation
+        , activation : Activation
+        }
+    -> node
 view (Views views) config =
     views.tabs
         { role = "tablist"

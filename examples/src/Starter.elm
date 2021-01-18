@@ -21,22 +21,17 @@ main =
 
 
 type alias Model =
-    { activeAutomatic : String
-    , activeManual : String
-    }
+    { active : String }
 
 
 type Msg
     = NoOp
-    | UserChangedTabAutomatic String (Task Browser.Dom.Error ())
-    | UserChangedTabManual String (Task Browser.Dom.Error ())
+    | UserChangedTab String (Task Browser.Dom.Error ())
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( { activeAutomatic = "Nils Frahm"
-      , activeManual = "Nils Frahm"
-      }
+    ( { active = "Nils Frahm" }
     , Cmd.none
     )
 
@@ -47,13 +42,8 @@ update msg model =
         NoOp ->
             ( model, Cmd.none )
 
-        UserChangedTabAutomatic active task ->
-            ( { model | activeAutomatic = active }
-            , Task.attempt (\_ -> NoOp) task
-            )
-
-        UserChangedTabManual active task ->
-            ( { model | activeManual = active }
+        UserChangedTab active task ->
+            ( { model | active = active }
             , Task.attempt (\_ -> NoOp) task
             )
 
@@ -85,36 +75,19 @@ view model =
                 currently displayed panel, most commonly the top edge.
                 """
             ]
-        , Html.h2 []
-            [ Html.text "Automatic activation" ]
         , Tabs.viewStarter
-            { tabs = List.map (toTab "automatic") tabs
-            , active = model.activeAutomatic
-            , label = Tabs.label "Entertainment"
-            , orientation = Tabs.Horizontal
-            , activation = Tabs.Automatic
-            , onChange = UserChangedTabAutomatic
-            }
-        , Html.h2 []
-            [ Html.text "Manual activation" ]
-        , Tabs.viewStarter
-            { tabs = List.map (toTab "manual") tabs
-            , active = model.activeManual
-            , label = Tabs.label "Entertainment"
-            , orientation = Tabs.Horizontal
-            , activation = Tabs.Manual
-            , onChange = UserChangedTabManual
+            { tabs = List.map toTab tabs
+            , active = model.active
+            , label = "Entertainment"
+            , onChange = UserChangedTab
             }
         ]
 
 
-toTab : String -> ( String, String ) -> Tabs.Tab (Html Msg) String
-toTab id ( title, content ) =
-    { tag = title
-    , id = title ++ "-" ++ id
-    , label = Html.text title
-    , panel = Html.text content
-    , focusable = True
+toTab : ( String, String ) -> { label : String, panel : Html msg }
+toTab ( label, content ) =
+    { label = label
+    , panel = Html.p [] [ Html.text content ]
     }
 
 
