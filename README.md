@@ -13,7 +13,9 @@ the [WAI-ARIA Authoring Practices
 
 Take a look at the [demo page](https://kirchner.github.io/elm-wai-aria-tabs/).
 
-See more end-to-end example code in the `examples/` folder.
+See more end-to-end example code in the
+[`examples/`](https://github.com/kirchner/elm-wai-aria-tabs/tree/main/examples)
+folder.
 
 
 ## Design Goals
