@@ -436,20 +436,56 @@ viewTab toNode config tab =
                     Just (activateTab config tab)
 
                 "ArrowRight" ->
-                    case config.activation of
-                        Automatic ->
-                            activateNextTab config tab.id
+                    case config.orientation of
+                        Horizontal ->
+                            case config.activation of
+                                Automatic ->
+                                    activateNextTab config tab.id
 
-                        Manual ->
-                            focusNextTab config tab.id
+                                Manual ->
+                                    focusNextTab config tab.id
+
+                        Vertical ->
+                            Nothing
+
+                "ArrowDown" ->
+                    case config.orientation of
+                        Horizontal ->
+                            Nothing
+
+                        Vertical ->
+                            case config.activation of
+                                Automatic ->
+                                    activateNextTab config tab.id
+
+                                Manual ->
+                                    focusNextTab config tab.id
 
                 "ArrowLeft" ->
-                    case config.activation of
-                        Automatic ->
-                            activatePreviousTab config tab.id
+                    case config.orientation of
+                        Horizontal ->
+                            case config.activation of
+                                Automatic ->
+                                    activatePreviousTab config tab.id
 
-                        Manual ->
-                            focusPreviousTab config tab.id
+                                Manual ->
+                                    focusPreviousTab config tab.id
+
+                        Vertical ->
+                            Nothing
+
+                "ArrowUp" ->
+                    case config.orientation of
+                        Horizontal ->
+                            Nothing
+
+                        Vertical ->
+                            case config.activation of
+                                Automatic ->
+                                    activatePreviousTab config tab.id
+
+                                Manual ->
+                                    focusPreviousTab config tab.id
 
                 "Home" ->
                     case config.activation of
