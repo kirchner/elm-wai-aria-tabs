@@ -1,5 +1,6 @@
 module ElmUi exposing (main)
 
+import Accessibility.Tabs as Tabs
 import BeautifulExample
 import Browser
 import Browser.Dom
@@ -13,7 +14,6 @@ import Element.Region as Region
 import Html exposing (Html)
 import Html.Attributes
 import Html.Events
-import Tabs
 import Task exposing (Task)
 
 

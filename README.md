@@ -37,7 +37,7 @@ something like this:
 ```elm
 import Browser.Dom
 import Html exposing (Html)
-import Tabs
+import Accessibility.Tabs
 import Task exposing (Task)
 
 
@@ -78,7 +78,7 @@ view model =
             , panel = Html.text content
             }
     in
-    Tabs.viewStarter
+    Accessibility.Tabs.viewStarter
         { tabs = List.map toTab tabs
         , active = model.active
         , label = "Entertainment"

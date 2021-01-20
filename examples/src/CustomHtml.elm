@@ -1,12 +1,12 @@
 module CustomHtml exposing (main)
 
+import Accessibility.Tabs as Tabs
 import Browser
 import Browser.Dom
 import Html exposing (Html)
 import Html.Attributes
 import Html.Events
 import Json.Decode
-import Tabs
 import Task exposing (Task)
 
 

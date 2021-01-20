@@ -1,4 +1,4 @@
-module Tabs exposing
+module Accessibility.Tabs exposing
     ( viewStarter
     , view
     , Label, labelledby, label, Tab, Activation(..), Orientation(..)
