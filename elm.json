@@ -3,7 +3,7 @@
     "name": "kirchner/elm-wai-aria-tabs",
     "summary": "Implementation of the WAI-ARIA tabs widget",
     "license": "Apache-2.0",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "exposed-modules": [
         "Accessibility.Tabs"
     ],
